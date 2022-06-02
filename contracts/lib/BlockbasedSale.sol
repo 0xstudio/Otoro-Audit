@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.14;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -101,7 +101,7 @@ contract BlockbasedSale is Ownable, Roles {
     SaleStats public saleStats;
     SaleConfig public saleConfig;
 
-    uint256 public maxSupply;
+    uint256 public maxSupply = 10000;
     uint256 public maxReserve;
     uint256 public privateSalePriceCapped = 500000000000000000;
     uint256 public publicSaleBeginPrice;
@@ -346,7 +346,7 @@ contract BlockbasedSale is Ownable, Roles {
         return supplyWithoutReserve == mintedWithoutReserve;
     }
 
-    function getStateName() public view returns (string memory) {
+    function getStateName() external view returns (string memory) {
         SaleState state = getState();
         if (state == SaleState.DutchAuctionBeforeWithoutBlock)
             return "DutchAuctionBeforeWithoutBlock";

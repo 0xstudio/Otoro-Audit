@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.14;
 
 import "@openzeppelin/contracts/finance/PaymentSplitter.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -27,6 +27,7 @@ contract Otoro is
     event Airdrop(address[] addresses, uint256 amount);
     event Purchased(address indexed account, uint256 indexed index);
     event WithdrawNonPurchaseFund(uint256 balance);
+    event Release(address account);
 
     mapping(address => uint256) private _dutchAuctionMinted;
     mapping(address => uint256) private _privateSaleClaimed;
@@ -124,27 +125,23 @@ contract Otoro is
             "Sale not available."
         );
 
-        if (getState() == SaleState.PrivateSaleDuring) {
-            require(isOG(signature), "Not OG whitelisted.");
-            require(_ogClaimed[msg.sender] == 0, "Already Claimed OG.");
-            require(
-                totalPrivateSaleMinted().add(1) <= privateSaleCapped,
-                "Exceed Private Sale Limit"
-            );
+        require(isOG(signature), "Not OG whitelisted.");
+        require(_ogClaimed[msg.sender] == 0, "Already Claimed OG.");
+        require(
+            totalPrivateSaleMinted().add(1) <= privateSaleCapped,
+            "Exceed Private Sale Limit"
+        );
 
-            require(msg.value >= getPriceByMode(), "Insufficient funds.");
+        require(msg.value >= getPriceByMode(), "Insufficient funds.");
 
-            _ogClaimed[msg.sender] = _ogClaimed[msg.sender] + 1;
-            saleStats.totalOGMinted = saleStats.totalOGMinted.add(1);
+        _ogClaimed[msg.sender] = _ogClaimed[msg.sender] + 1;
+        saleStats.totalOGMinted = saleStats.totalOGMinted.add(1);
 
-            _mintToken(msg.sender, 1);
+        _mintToken(msg.sender, 1);
 
-            payable(_splitter).transfer(msg.value);
+        payable(_splitter).transfer(msg.value);
 
-            return true;
-        }
-
-        return false;
+        return true;
     }
 
     function mintToken(uint256 amount, bytes calldata signature)
@@ -206,46 +203,40 @@ contract Otoro is
             );
         }
 
-        if (
-            state == SaleState.PrivateSaleDuring ||
-            state == SaleState.PublicSaleDuring ||
-            state == SaleState.DutchAuctionDuring
-        ) {
-            _mintToken(msg.sender, amount);
-            if (state == SaleState.DutchAuctionDuring) {
-                saleStats.totalDAMinted = saleStats.totalDAMinted.add(amount);
-                
-                uint256 mintPrice =  msg.value.div(amount);
+        _mintToken(msg.sender, amount);
+        if (state == SaleState.DutchAuctionDuring) {
+            saleStats.totalDAMinted = saleStats.totalDAMinted.add(amount);
 
-                fairDAInfo[msg.sender].push(
-                    MintInfo(uint128(mintPrice), uint8(amount))
-                );
-                
-                if (mintPrice < finalDAPrice) {
-                    finalDAPrice = mintPrice;
-                }
-                
-                _dutchAuctionMinted[msg.sender] =
-                    _dutchAuctionMinted[msg.sender] +
-                    amount;
+            uint256 mintPrice = msg.value.div(amount);
+
+            fairDAInfo[msg.sender].push(
+                MintInfo(uint128(mintPrice), uint8(amount))
+            );
+
+            if (mintPrice < finalDAPrice) {
+                finalDAPrice = mintPrice;
             }
-            if (state == SaleState.PublicSaleDuring) {
-                saleStats.totalFMMinted = saleStats.totalFMMinted.add(amount);
-            }
-            if (state == SaleState.PrivateSaleDuring) {
-                _privateSaleClaimed[msg.sender] =
-                    _privateSaleClaimed[msg.sender] +
-                    amount;
-                saleStats.totalWLMinted = saleStats.totalWLMinted.add(amount);
-            }
-            payable(_splitter).transfer(msg.value);
+
+            _dutchAuctionMinted[msg.sender] =
+                _dutchAuctionMinted[msg.sender] +
+                amount;
         }
+        if (state == SaleState.PublicSaleDuring) {
+            saleStats.totalFMMinted = saleStats.totalFMMinted.add(amount);
+        }
+        if (state == SaleState.PrivateSaleDuring) {
+            _privateSaleClaimed[msg.sender] =
+                _privateSaleClaimed[msg.sender] +
+                amount;
+            saleStats.totalWLMinted = saleStats.totalWLMinted.add(amount);
+        }
+        payable(_splitter).transfer(msg.value);
 
         return true;
     }
 
     function dutchAuctionInfo(address user)
-        public
+        external
         view
         returns (MintInfo[] memory)
     {
@@ -290,6 +281,7 @@ contract Otoro is
         );
 
         _splitter.release(account);
+        emit Release(address(account));
     }
 
     function withdraw() external onlyOperator {

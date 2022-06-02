@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.13;
+pragma solidity 0.8.14;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -24,6 +24,9 @@ abstract contract Revealable is VRFConsumerBase, Roles {
         uint256 seed
     );
     event RandomseedFulfilmentFail(uint256 timestamp, bytes32 requestId);
+    event SetRevealedBaseURI(string _baseURI);
+    event SetRevealBlock(uint256 blockNumber);
+    event SetDefaultURI(string uri);
 
     constructor(
         string memory _defaultUri,
@@ -39,14 +42,17 @@ abstract contract Revealable is VRFConsumerBase, Roles {
         require(!isRevealed(), "Already revealed");
 
         defaultURI = _defaultURI;
+        emit SetDefaultURI(_defaultURI);
     }
 
     function setRevealBlock(uint256 blockNumber) external onlyOperator {
         revealBlock = blockNumber;
+        emit SetRevealBlock(blockNumber);
     }
 
     function setRevealedBaseURI(string memory _baseURI) external onlyOperator {
         revealedBaseURI = _baseURI;
+        emit SetRevealedBaseURI(_baseURI);
     }
 
     function requestChainlinkVRF() external onlyOperator {
@@ -99,9 +105,7 @@ abstract contract Revealable is VRFConsumerBase, Roles {
             uint256 j = (uint256(keccak256(abi.encode(seed, i))) %
                 (maxSupply)) + 1;
 
-            if (j >= startIndex && j <= maxSupply) {
-                (metadata[i], metadata[j]) = (metadata[j], metadata[i]);
-            }
+            (metadata[i], metadata[j]) = (metadata[j], metadata[i]);
         }
 
         return Strings.toString(metadata[tokenId]);
