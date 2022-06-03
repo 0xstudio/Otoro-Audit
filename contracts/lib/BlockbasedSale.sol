@@ -313,7 +313,7 @@ contract BlockbasedSale is Ownable, Roles {
         if (state == SaleState.PrivateSaleDuring) {
             uint256 halfFinalPrice = finalDAPrice.div(2);
             return
-                (halfFinalPrice < privateSalePriceCapped)
+                (halfFinalPrice > privateSalePriceCapped)
                     ? privateSalePriceCapped
                     : halfFinalPrice;
         }
