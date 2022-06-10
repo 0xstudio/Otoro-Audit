@@ -29,7 +29,7 @@ contract Otoro is
     event WithdrawNonPurchaseFund(uint256 balance);
     event Release(address account);
 
-    mapping(address => uint256) private _dutchAuctionMinted;
+    
     mapping(address => uint256) private _privateSaleClaimed;
     mapping(address => uint256) private _ogClaimed;
     PaymentSplitter private _splitter;
@@ -165,13 +165,8 @@ contract Otoro is
 
         if (state == SaleState.DutchAuctionDuring) {
             require(
-                amount <= saleConfig.maxDAMintPerWallet,
+                amount <= saleConfig.maxDAMintPerTx,
                 "Mint exceed transaction limits."
-            );
-            require(
-                _dutchAuctionMinted[msg.sender] + amount <=
-                    saleConfig.maxDAMintPerWallet,
-                "Mint limit per wallet exceeded."
             );
             require(
                 saleStats.totalDAMinted.add(amount) <= dutchAuctionCapped,
@@ -216,10 +211,6 @@ contract Otoro is
             if (mintPrice < finalDAPrice) {
                 finalDAPrice = mintPrice;
             }
-
-            _dutchAuctionMinted[msg.sender] =
-                _dutchAuctionMinted[msg.sender] +
-                amount;
         }
         if (state == SaleState.PublicSaleDuring) {
             saleStats.totalFMMinted = saleStats.totalFMMinted.add(amount);

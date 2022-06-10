@@ -86,7 +86,7 @@ contract BlockbasedSale is Ownable, Roles {
     }
 
     struct SaleConfig {
-        uint256 maxDAMintPerWallet;
+        uint256 maxDAMintPerTx;
         uint256 maxFMMintPerTx;
     }
 
@@ -162,7 +162,7 @@ contract BlockbasedSale is Ownable, Roles {
         external
         onlyOperator
     {
-        saleConfig.maxDAMintPerWallet = _dutchAuction;
+        saleConfig.maxDAMintPerTx = _dutchAuction;
         saleConfig.maxFMMintPerTx = _freeMarket;
         emit AssignTransactionLimit(_dutchAuction, _freeMarket);
     }
@@ -286,7 +286,7 @@ contract BlockbasedSale is Ownable, Roles {
 
     function getTransactionCappedByMode() external view returns (uint256) {
         if (getState() == SaleState.DutchAuctionDuring)
-            return saleConfig.maxDAMintPerWallet;
+            return saleConfig.maxDAMintPerTx;
         if (getState() == SaleState.PublicSaleDuring)
             return saleConfig.maxFMMintPerTx;
         return 2;
